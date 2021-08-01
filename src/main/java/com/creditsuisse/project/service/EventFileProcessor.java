@@ -3,6 +3,7 @@ package com.creditsuisse.project.service;
 import com.creditsuisse.project.common.dto.Event;
 import com.creditsuisse.project.common.dto.EventLog;
 import com.creditsuisse.project.common.enums.EventState;
+import com.creditsuisse.project.exception.EventNotSavedException;
 import com.creditsuisse.project.exception.FileNotFoundAtLocation;
 import com.creditsuisse.project.repository.EventRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.creditsuisse.project.common.constants.AppConstants.EVENT_NOT_SAVED_EXCEPTION;
 import static com.creditsuisse.project.common.constants.AppConstants.FILE_NOT_FOUND_ERROR_MESSAGE;
 
 @Service
@@ -48,13 +50,17 @@ public class EventFileProcessor {
     }
 
     private void addEventToMap(Event event) {
+        log.info("The Event is: {}", event);
         if(!eventMap.containsKey(event.getId()) &&
                 event.getState().equals(EventState.STARTED)) {
             eventMap.put(event.getId(), event);
         } else {
             EventLog eventLog = EventLog.newInstance(eventMap.get(event.getId()), event);
-            eventRepository.saveEvent(eventLog);
+            boolean response = eventRepository.saveEvent(eventLog);
+            log.info("The response from database is {}", response);
+            if(!response) {
+                throw new EventNotSavedException(EVENT_NOT_SAVED_EXCEPTION);
+            }
         }
     }
-
 }

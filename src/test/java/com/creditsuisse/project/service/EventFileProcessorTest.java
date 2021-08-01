@@ -4,6 +4,7 @@ import com.creditsuisse.project.common.dto.Event;
 import com.creditsuisse.project.common.dto.EventLog;
 import com.creditsuisse.project.common.enums.EventState;
 import com.creditsuisse.project.common.enums.EventType;
+import com.creditsuisse.project.exception.EventNotSavedException;
 import com.creditsuisse.project.exception.FileNotFoundAtLocation;
 import com.creditsuisse.project.repository.EventRepository;
 import org.junit.jupiter.api.Assertions;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,6 +41,7 @@ public class EventFileProcessorTest {
     @Test
     public void processEventFileByLocationTest() throws FileNotFoundException {
         Mockito.when(jsonConvertor.convertJsonStringToEvent(anyString())).thenReturn(getEvent());
+        Mockito.when(eventRepository.saveEvent(any())).thenReturn(true);
         File file = ResourceUtils.getFile("classpath:events.txt");
         eventFileProcessor.processEventFileByLocation(file.getAbsolutePath());
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
@@ -56,6 +59,16 @@ public class EventFileProcessorTest {
         Mockito.when(jsonConvertor.convertJsonStringToEvent(anyString())).thenReturn(getEvent());
         Assertions.assertThrows(FileNotFoundAtLocation.class, () -> {
             eventFileProcessor.processEventFileByLocation("classpath:event.txt");
+        });
+    }
+
+    @Test
+    public void eventSaveExceptionTest() throws FileNotFoundException {
+        Mockito.when(jsonConvertor.convertJsonStringToEvent(anyString())).thenReturn(getEvent());
+        Mockito.when(eventRepository.saveEvent(any())).thenReturn(false);
+        File file = ResourceUtils.getFile("classpath:events.txt");
+        Assertions.assertThrows(EventNotSavedException.class, () -> {
+            eventFileProcessor.processEventFileByLocation(file.getAbsolutePath());
         });
     }
 
